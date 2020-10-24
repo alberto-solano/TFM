@@ -52,8 +52,10 @@ class RegEnv(gym.Env):
         self.N = N
         self.noise = noise
         self.lr = lr
-        self.x, self.y = self._generate_random_problem(noise)
-        self.observation_space = spaces.Box(low=[m-5, n-5], high=[m+5, n+5])
+        self.x, self.y = self._generate_random_problem()
+        self.observation_space = spaces.Box(
+            low=np.array([m-5, n-5], dtype=np.float32),
+            high=np.array([m+5, n+5], dtype=np.float32))
         self.action_space = spaces.Discrete(8)
         self.actions = np.array([(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1),
                                  (-1, -1), (1, -1), (-1, 1)])*lr
@@ -134,10 +136,10 @@ class RegEnv(gym.Env):
         """
         fig = plt.Figure()
         ax = fig.add_subplot()
-        ax.scatter(self.x, self.y)
+        ax.scatter(self.x, self.y, c='k')
         x = np.linspace(min(self.x), max(self.x), 2)
         y = self.A * x + self.B
-        ax.plot(x, y)
-        ax.set_ylim(-5, 10)
-        ax.set_xlim(0, 10)
+        ax.plot(x, y, c='r')
+        ax.set_ylim(np.min(self.y)-2, np.max(self.y)+2)
+        ax.set_xlim(np.min(self.x)-2, np.max(self.x)+2)
         return fig

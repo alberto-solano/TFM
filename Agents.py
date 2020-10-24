@@ -1,14 +1,10 @@
 import numpy as np
-import pandas as pd
 from collections import defaultdict, namedtuple
 import itertools
 import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-
-# ONE-STEP, TABULAR, MODEL-FREE, TD METHODS
 
 
 class QLearning:
@@ -423,9 +419,6 @@ class ExpectedSARSA:
             return np.argmax(self.Q[state])
 
 
-# APPROXIMATE, ONE-STEP, MODEL-FREE, TD METHODS
-
-
 class DQN:
     """
 
@@ -623,47 +616,3 @@ class DQN:
             state = torch.from_numpy(state).float()\
                 .unsqueeze(0).to(self.device)
             return self.Q_net(state).max(1)[1].view(1, 1).item()
-
-
-class TWAP:
-    def __init__(self):
-        self.H = 0
-        self.V = 0
-        self.ratio = 0
-        self.index = []
-        self.actions = []
-
-    def train(self, env):
-        self.H = env.H - pd.to_timedelta(1, unit='s')
-        self.V = env.V
-        self.ratio = self.V/self.H.delta
-        self.time_step = env.time_step.delta
-        self.actions = env.posible_actions
-
-    def predict(self, state):
-        volume = self.ratio * self.time_step
-        action = np.where(self.actions >= volume)[0]
-        if action.size == 0:
-            action = len(self.actions) - 1
-        else:
-            action = action[0]
-        return action
-
-
-class POV:
-    def __init__(self, percent):
-        self.percent = percent
-        self.actions = []
-
-    def train(self, env):
-        self.actions = env.posible_actions
-
-    def predict(self, env):
-        state = env.orderbook.iloc[env.istep][env.SizeCols]
-        volume = np.sum(state) * self.percent
-        action = np.where(self.actions >= volume)[0]
-        if action.size == 0:
-            action = len(self.actions) - 1
-        else:
-            action = action[0]
-        return action
