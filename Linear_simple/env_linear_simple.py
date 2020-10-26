@@ -52,7 +52,12 @@ class RegEnv(gym.Env):
         self.N = N
         self.noise = noise
         self.lr = lr
+        # Genero los puntos
         self.x, self.y = self._generate_random_problem()
+        # Establezco los límites del espacio, en este caso elijo que los
+        # valores posibles para la pendiente y la ordenada estén como mucho
+        # 5 unidades por encima o por debajo del valor que marcaría la
+        # distribución de puntos generados.
         self.observation_space = spaces.Box(
             low=np.array([m-5, n-5], dtype=np.float32),
             high=np.array([m+5, n+5], dtype=np.float32))
@@ -92,6 +97,9 @@ class RegEnv(gym.Env):
         info : empty
         """
         action = self.actions[action]
+        # Me aseguro que en el caso en el que se llegue al borde del 'box' no sea posible
+        # salirse con una acción de las posibles, si se da ese caso, se repite el valor
+        # que se tomaría en el borde.
         self.A = np.clip(action[0] + self.A, self.observation_space.low[0],
                          self.observation_space.high[0])
         self.B = np.clip(action[1] + self.B, self.observation_space.low[1],

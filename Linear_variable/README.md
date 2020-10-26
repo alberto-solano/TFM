@@ -1,0 +1,1 @@
+Implementación recta que cambia cada episodio.

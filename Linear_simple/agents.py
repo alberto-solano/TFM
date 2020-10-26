@@ -29,7 +29,7 @@ class QLearning:
     adaptive : function
         Function to perform adaptive hyperparameters. (default = None)
 
-    discretize: function
+    discretize : function
         Discretization function to discretize continuous states.
         (default = None)
 
@@ -37,19 +37,19 @@ class QLearning:
         If true perform Double Q Learning to avoid maximization bias.
         It will double the memory requirements. (default = False)
 
-    verbose: bool
+    verbose : bool
         Show training information. (default = True)
 
-    save: str
+    save : str
         The path where the action-state value matrix will be saved.
         (default = None)
 
     Attributes
     ----------
-    Q: ndarray
+    Q : ndarray
         The action-state value matrix. (n_states x n_actions)
 
-    n_actions: int
+    n_actions : int
         Number of actions that can be performed in the environment.
     """
 
@@ -113,7 +113,6 @@ class QLearning:
         stats: dict
             Record of rewards in each episode. If save is enabled,
             the dictionary has the rewards and the checkpoints.
-
         """
 
         self.n_actions = env.action_space.n
@@ -215,195 +214,7 @@ class QLearning:
 
         Parameters
         ----------
-        state: int
-            Current state of the environment.
-
-        Returns
-        -------
-        action: int
-            Action chosen by the policy.
-        """
-
-        state = self.discretize(state)
-        if self.double:
-            return np.argmax(self.Q[state] + self.Q2[state])
-        else:
-            return np.argmax(self.Q[state])
-
-
-class ExpectedSARSA:
-    """
-    Expected SARSA off-policy Temporal Difference Control.
-
-    Parameters
-    ----------
-    alpha : float
-        Temporal difference learning rate. (between (0,1])
-
-    gamma : float
-        Discount factor. (between [0,1])
-
-    epsilon : float
-        Probability that the action is chosen randomly by the
-        epsilon-greedy policy. (between [0,1])
-
-    policy : function
-         Policy function to perform during learning. (default = epsilon_greedy)
-
-    adaptive : function
-        Function to perform adaptive hyperparameters. (default = None)
-
-    discretize: function
-        Discretization function to discretize continuous states.
-        (default = None)
-
-    double = bool
-        If true perform Double Expected SARSA to avoid maximization bias.
-        It will double the memory requirements. (default = False)
-
-    verbose: bool
-        Show training information. (default = True)
-
-    Attributes
-    ----------
-    Q: ndarray
-        The action-state value matrix. (n_states x n_actions)
-
-    n_actions: int
-        Number of actions that can be performed in the environment.
-    """
-
-    def __init__(self, alpha, gamma, epsilon, policy=None, adaptive=None,
-                 discretize=None, double=False, verbose=True):
-        self.alpha = alpha
-        self.gamma = gamma
-        self.adaptive = adaptive
-        self.epsilon = epsilon
-        self.Q = None
-        if double:
-            self.Q2 = None
-        self.policy = policy if policy is not None else self.epsilon_greedy
-        self.n_actions = None
-        self.discretize = discretize if discretize is not None else lambda x: x
-        self.double = double
-        self.verbose = verbose
-
-    def epsilon_greedy(self, state):
-        """
-        Epsilon-greedy policy.
-
-        Chose a random action with probability gamma
-        or chose the best action with probability (1 - gamma).
-
-        Parameters
-        ----------
-        state: int
-            Current state of the environment.
-
-        Returns
-        -------
-        policy_action: int
-            Action chosen by the policy.
-        """
-
-        if np.random.random() < self.epsilon:
-            return np.random.randint(0, self.n_actions)
-        else:
-            if self.double:
-                Q = self.Q[state] + self.Q2[state]
-            else:
-                Q = self.Q[state]
-            return np.argmax(Q)
-
-    def train(self, env, episodes):
-        """
-        Train the agent.
-
-        Parameters
-        ----------
-        env: class
-            The environment in which the training has to be made.
-
-        episodes: int
-            Number of training episodes.
-
-        Returns
-        -------
-        stats: list
-            Record of rewards in each episode.
-
-        """
-
-        self.n_actions = env.action_space.n
-
-        self.Q = defaultdict(lambda: np.zeros(self.n_actions))
-        if self.double:
-            self.Q2 = defaultdict(lambda: np.zeros(self.n_actions))
-
-        stats = []
-
-        for episode in range(episodes):
-            if self.adaptive is not None:
-                self.adaptive(self, episode)
-
-            state = self.discretize(env.reset())
-
-            returns = 0
-            for t in itertools.count():
-
-                action = self.policy(state)
-                state_, reward, done, info = env.step(action)
-                state_ = self.discretize(state_)
-
-                if not self.double:
-                    expectation = np.sum((np.exp(self.Q[state_]) /
-                                         np.sum(np.exp(self.Q[state_]))) *
-                                         self.Q[state_])
-                    self.Q[state][action] += self.alpha * \
-                        (reward + self.gamma * expectation -
-                         self.Q[state][action])
-
-                else:
-
-                    Q = (self.Q[state_] + self.Q2[state_]) / 2
-
-                    if np.random.randint(0, 2):
-                        expectation = np.sum((np.exp(Q) /
-                                             np.sum(np.exp(Q))) *
-                                             self.Q2[state_])
-                        self.Q[state][action] += self.alpha * (
-                                reward + self.gamma * expectation -
-                                self.Q[state][action])
-
-                    else:
-                        expectation = np.sum((np.exp(Q) /
-                                             np.sum(np.exp(Q))) *
-                                             self.Q[state_])
-                        self.Q2[state][action] += self.alpha * (
-                                reward + self.gamma * expectation -
-                                self.Q2[state][action])
-
-                returns += reward
-
-                if done:
-                    break
-
-                state = state_
-
-            if self.verbose is True:
-                print('Episode:', episode, "; Returns:", returns)
-
-            stats.append(returns)
-
-        return stats
-
-    def predict(self, state):
-        """
-        Predict which is the best action to choose.
-
-        Parameters
-        ----------
-        state: int
+        state: np.array
             Current state of the environment.
 
         Returns
@@ -421,7 +232,63 @@ class ExpectedSARSA:
 
 class DQN:
     """
+    Deep-Q-Network for RL tasks based on gym environments.
 
+    Parameters
+    ----------
+    alpha : float
+        Network optimizer learning rate. (between (0,1])
+
+    gamma : float
+        Discount factor. (between [0,1])
+
+    epsilon : float
+        Probability that the action is chosen randomly by the epsilon-greedy
+        policy. (between [0,1])
+
+    capacity : int
+        Capacity for the experience replay on DQN.
+
+    policy : function
+        Policy function to perform during learning. (default = epsilon_greedy)
+
+    adaptive : function
+        Function to perform adaptive hyperparameters. (default = None)
+
+    double : bool
+        If true perform Double DQN to avoid overestimation bias.
+        It will double the memory requirements. (default = False)
+
+    qnetwork : class
+        Saved network architecture. (default = None)
+
+    loss : pytorch loss function
+        Loss function. (default: l1_loss)
+
+    optimizer : pytorch optimizer
+        Optimizer for the backpropagation.  (default = RMSprop)
+
+    verbose: bool
+        Show training information. (default = True)
+
+    save: str
+        The path where the action-state value matrix will be saved.
+        (default = None)
+
+    Attributes
+    ----------
+
+    n_actions : int
+        Number of actions that can be performed in the environment.
+
+    state_dims : int
+        Dimension of the environment
+
+    Transition : named tuple
+        Stores the info ('state', 'action', 'next_state', 'reward')
+        in memory for the experience replay.
+
+    steps_done : 
     """
 
     def __init__(self, env, alpha, gamma, epsilon, capacity=10000, policy=None,
@@ -462,6 +329,9 @@ class DQN:
         self.save = save
 
     class DQNetwork(nn.Module):
+        """
+        Defines the network used.
+        """
         def __init__(self, state_dims, n_actions):
             super().__init__()
             self.l1 = nn.Linear(state_dims, 64)
@@ -475,6 +345,9 @@ class DQN:
             return x
 
     class ReplayMemory:
+        """
+        
+        """
         def __init__(self, capacity):
             self.Transition = namedtuple('Transition',
                                          ('state', 'action',
@@ -497,6 +370,22 @@ class DQN:
             return len(self.memory)
 
     def epsilon_greedy(self, state):
+        """
+        Epsilon-greedy policy.
+
+        Chose a random action with probability gamma
+        or chose the best action with probability (1 - gamma).
+
+        Parameters
+        ----------
+        state: int
+            Current state of the environment.
+
+        Returns
+        -------
+        policy_action: int
+            torch.long with the action chosen by the policy.
+        """
         sample = np.random.random()
         if sample > self.epsilon:
             self.Q_net.eval()
@@ -508,12 +397,37 @@ class DQN:
                                 device=self.device, dtype=torch.long)
 
     def train(self, env, episodes, batch_size, target_update=4):
+        """
+        Train the agent.
 
+        Parameters
+        ----------
+        env: class
+            The environment in which the training has to be made.
+
+        episodes: int
+            Number of training episodes.
+
+        batch_size : int
+            Number of tuples used for training before weights update.
+
+        target_update : int
+
+
+        Returns
+        -------
+        stats: dict
+            Record of rewards in each episode. If save is enabled,
+            the dictionary has the rewards and the checkpoints.
+
+        """
         memory = self.ReplayMemory(self.capacity)
 
-        self.steps_done = 0
-
         def optimize_model():
+            """
+            Performs the backpropagation.
+
+            """
             if len(memory) < batch_size:
                 return
 
@@ -611,6 +525,19 @@ class DQN:
         return stats
 
     def predict(self, state):
+        """
+        Predict which is the best action to choose.
+
+        Parameters
+        ----------
+        state: np.array
+            Current state of the environment.
+
+        Returns
+        -------
+        action: int
+            Action chosen by the policy.
+        """
         with torch.no_grad():
             self.Q_net.eval()
             state = torch.from_numpy(state).float()\
