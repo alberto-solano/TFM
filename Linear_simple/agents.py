@@ -282,13 +282,11 @@ class DQN:
         Number of actions that can be performed in the environment.
 
     state_dims : int
-        Dimension of the environment
+        Dimension of the environment.
 
     Transition : named tuple
         Stores the info ('state', 'action', 'next_state', 'reward')
         in memory for the experience replay.
-
-    steps_done : 
     """
 
     def __init__(self, env, alpha, gamma, epsilon, capacity=10000, policy=None,
@@ -325,12 +323,20 @@ class DQN:
         self.Transition = namedtuple('Transition', ('state', 'action',
                                                     'next_state', 'reward'))
         self.loss = loss
-        self.steps_done = 0
         self.save = save
 
     class DQNetwork(nn.Module):
         """
         Defines the network used.
+
+        Parameters
+        ----------
+        state_dims : int
+            Dimension of the environment.
+
+        n_actions : int
+            Number of actions which can be performed.
+
         """
         def __init__(self, state_dims, n_actions):
             super().__init__()
@@ -346,7 +352,15 @@ class DQN:
 
     class ReplayMemory:
         """
-        
+        Defines the memory usage for the experience replay.
+
+        Parameters
+        ----------
+        capacity : int
+            Memory max size.
+
+        position : int
+            Index for the current position in memory.
         """
         def __init__(self, capacity):
             self.Transition = namedtuple('Transition',
@@ -364,6 +378,7 @@ class DQN:
             self.position = (self.position + 1) % self.capacity
 
         def sample(self, batch_size):
+            # Takes k=batch_size samples of the memory.
             return random.sample(self.memory, k=batch_size)
 
         def __len__(self):
@@ -412,7 +427,8 @@ class DQN:
             Number of tuples used for training before weights update.
 
         target_update : int
-
+            Number of episodes where the target net for
+            estimating the Q values remains freezed before updating.
 
         Returns
         -------

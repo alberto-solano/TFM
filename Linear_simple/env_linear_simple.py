@@ -97,9 +97,9 @@ class RegEnv(gym.Env):
         info : empty
         """
         action = self.actions[action]
-        # Me aseguro que en el caso en el que se llegue al borde del 'box' no sea posible
-        # salirse con una acción de las posibles, si se da ese caso, se repite el valor
-        # que se tomaría en el borde.
+        # Me aseguro que si se llega al borde del 'box' no sea posible
+        # salirse con una acción de las posibles, si se da ese caso, se repite
+        # el valor que se tomaría en el borde.
         self.A = np.clip(action[0] + self.A, self.observation_space.low[0],
                          self.observation_space.high[0])
         self.B = np.clip(action[1] + self.B, self.observation_space.low[1],
